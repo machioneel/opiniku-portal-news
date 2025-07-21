@@ -42,7 +42,7 @@ export interface Database {
   };
 }
 
-export interface Profile {
+export interface Profiles {
   id: string;
   user_id: string;
   full_name: string;
