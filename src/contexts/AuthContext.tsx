@@ -33,6 +33,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Create fallback profile when database profile can't be fetched
+  const createFallbackProfile = (userId: string, email: string): Profile => {
+    console.log('🛠️ AuthContext: Creating fallback profile for:', email);
+    
+    // Determine role based on email
+    let role: Profile['role'] = 'subscriber';
+    if (email.includes('admin@opiniku.id')) {
+      role = 'super_admin';
+    } else if (email.includes('editor@opiniku.id')) {
+      role = 'editor';
+    } else if (email.includes('journalist@opiniku.id')) {
+      role = 'journalist';
+    } else if (email.includes('@opiniku.id')) {
+      role = 'contributor';
+    }
+    
+    const fallbackProfile: Profile = {
+      id: `fallback-${userId}`,
+      user_id: userId,
+      full_name: email.split('@')[0] || 'User',
+      role: role,
+      bio: null,
+      avatar_url: null,
+      phone: null,
+      address: null,
+      is_active: true,
+      last_login_at: new Date().toISOString(),
+      email_verified: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    console.log('✅ AuthContext: Fallback profile created with role:', role);
+    return fallbackProfile;
+  };
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
@@ -47,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(session?.user ?? null);
           if (session?.user) {
             console.log('👤 AuthContext: User found, fetching profile for:', session.user.email);
-            await fetchProfile(session.user.id);
+            await fetchProfile(session.user.id, session.user.email);
           } else {
             console.log('👤 AuthContext: No user in session');
           }
@@ -73,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('👤 AuthContext: Auth change - User found, fetching profile for:', session.user.email);
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user.id, session.user.email);
       } else {
         console.log('👤 AuthContext: Auth change - No user, clearing profile');
         setProfile(null);
@@ -86,7 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     console.log('📋 AuthContext: Fetching profile for user ID:', userId);
     try {
       // Add timeout to prevent infinite hanging
@@ -103,11 +139,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // If RLS error, create a fallback profile based on user email
         if (error.message?.includes('infinite recursion') || error.message?.includes('policy')) {
           console.log('🔄 AuthContext: RLS error detected, creating fallback profile');
-          const fallbackProfile = createFallbackProfile(userId, user?.email || '');
+          const fallbackProfile = createFallbackProfile(userId, userEmail || user?.email || '');
           setProfile(fallbackProfile);
           return;
         }
-        setProfile(null); // Explicitly set profile to null on error
+        // For other errors, try fallback if we have email
+        if (userEmail || user?.email) {
+          console.log('🔄 AuthContext: Database error, creating fallback profile');
+          const fallbackProfile = createFallbackProfile(userId, userEmail || user?.email || '');
+          setProfile(fallbackProfile);
+        } else {
+          setProfile(null);
+        }
       } else if (data) {
         console.log('✅ AuthContext: Profile fetched successfully:', {
           name: data.full_name,
@@ -119,7 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.warn('⚠️ AuthContext: No profile data returned');
         // If no data but user exists, create fallback profile
         console.log('🔄 AuthContext: No profile data, creating fallback profile');
-        const fallbackProfile = createFallbackProfile(userId, user?.email || '');
+        const fallbackProfile = createFallbackProfile(userId, userEmail || user?.email || '');
         setProfile(fallbackProfile);
       }
     } catch (error) {
@@ -127,12 +170,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Handle timeout or other errors with fallback
       if (error instanceof Error && error.message === 'Profile fetch timeout') {
         console.log('⏰ AuthContext: Profile fetch timeout, creating fallback profile');
-        const fallbackProfile = createFallbackProfile(userId, user?.email || '');
+        const fallbackProfile = createFallbackProfile(userId, userEmail || user?.email || '');
+        setProfile(fallbackProfile);
+      } else if (userEmail || user?.email) {
+        console.log('🔄 AuthContext: Error occurred, creating fallback profile');
+        const fallbackProfile = createFallbackProfile(userId, userEmail || user?.email || '');
         setProfile(fallbackProfile);
       } else {
         setProfile(null);
       }
-      setProfile(null); // Explicitly set profile to null on catch error
     }
   };
 
@@ -182,44 +228,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await DatabaseService.signOut();
       setUser(null);
       setSession(null);
+      setProfile(null);
     } catch (error) {
       console.error('Error signing out:', error);
-  // Create fallback profile when database profile can't be fetched
-  const createFallbackProfile = (userId: string, email: string): Profile => {
-    console.log('🛠️ AuthContext: Creating fallback profile for:', email);
-    
-    // Determine role based on email (for demo purposes)
-    let role: Profile['role'] = 'subscriber';
-    if (email.includes('admin@opiniku.id')) {
-      role = 'super_admin';
-    } else if (email.includes('editor@opiniku.id')) {
-      role = 'editor';
-    } else if (email.includes('journalist@opiniku.id')) {
-      role = 'journalist';
-    } else if (email.includes('@opiniku.id')) {
-      role = 'contributor';
-    }
-    
-    const fallbackProfile: Profile = {
-      id: `fallback-${userId}`,
-      user_id: userId,
-      full_name: email.split('@')[0] || 'User',
-      role: role,
-      bio: null,
-      avatar_url: null,
-      phone: null,
-      address: null,
-      is_active: true,
-      last_login_at: new Date().toISOString(),
-      email_verified: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    console.log('✅ AuthContext: Fallback profile created with role:', role);
-    return fallbackProfile;
-  };
-
     } finally {
       setLoading(false);
     }
