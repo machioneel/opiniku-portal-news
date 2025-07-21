@@ -19,7 +19,8 @@ const AdminDashboard: React.FC = () => {
     userEmail: user?.email,
     hasProfile: !!profile,
     profileRole: profile?.role,
-    loading
+    loading,
+    isFallbackProfile: profile?.id?.startsWith('fallback-') || false
   });
 
   // Show loading while checking authentication
