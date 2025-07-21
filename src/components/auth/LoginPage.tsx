@@ -37,24 +37,33 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
+    console.log('🚀 LoginPage: Form submitted, starting login process');
 
     if (!formData.email || !formData.password) {
+      console.warn('⚠️ LoginPage: Missing email or password');
       setError('Mohon lengkapi semua field');
       return;
     }
 
+    console.log('📝 LoginPage: Form data valid, calling signIn for:', formData.email);
     try {
       const result = await signIn(formData.email, formData.password);
+      console.log('📨 LoginPage: SignIn result received:', result);
       
       if (result.success) {
+        console.log('✅ LoginPage: Login successful, showing success message');
         setSuccess('Login berhasil! Mengalihkan ke dashboard...');
         setTimeout(() => {
+          console.log('🔄 LoginPage: Navigating to /admin');
           navigate('/admin');
         }, 1500);
       } else {
+        console.error('❌ LoginPage: Login failed:', result.error);
         setError(result.error || 'Email atau password salah');
       }
     } catch (err: any) {
+      console.error('❌ LoginPage: Catch error in handleSubmit:', err);
       setError(err.message || 'Terjadi kesalahan saat login');
     }
   };

@@ -138,25 +138,41 @@ export class DatabaseService {
   }
 
   static async signIn(email: string, password: string) {
+    console.log('🔐 DatabaseService: Starting signInWithPassword for:', email);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('📡 DatabaseService: Supabase auth response received');
       if (error) throw error;
+
+      console.log('✅ DatabaseService: Authentication successful for:', data.user?.email);
+      console.log('👤 DatabaseService: User data:', {
+        id: data.user?.id,
+        email: data.user?.email,
+        confirmed_at: data.user?.confirmed_at
+      });
 
       // Update last login
       if (data.user) {
+        console.log('⏰ DatabaseService: Updating last login timestamp');
         await supabase
           .from('profiles')
           .update({ last_login_at: new Date().toISOString() })
           .eq('user_id', data.user.id);
+        console.log('✅ DatabaseService: Last login timestamp updated');
       }
 
       return { data, error: null };
     } catch (error: any) {
-      console.error('Signin error:', error);
+      console.error('❌ DatabaseService: Signin error:', {
+        message: error.message,
+        status: error.status,
+        statusText: error.statusText,
+        details: error
+      });
       return { data: null, error };
     }
   }
@@ -174,6 +190,7 @@ export class DatabaseService {
 
   // Profile management
   static async getProfile(userId: string) {
+    console.log('📋 DatabaseService: Getting profile for user ID:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -181,10 +198,26 @@ export class DatabaseService {
         .eq('user_id', userId)
         .single();
 
+      console.log('📡 DatabaseService: Profile query response received');
       if (error) throw error;
+      
+      console.log('✅ DatabaseService: Profile retrieved successfully:', {
+        id: data.id,
+        full_name: data.full_name,
+        role: data.role,
+        is_active: data.is_active,
+        email_verified: data.email_verified
+      });
+      
       return { data, error: null };
     } catch (error: any) {
-      console.error('Get profile error:', error);
+      console.error('❌ DatabaseService: Get profile error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        fullError: error
+      });
       return { data: null, error };
     }
   }

@@ -13,9 +13,18 @@ import { hasPermission, ROLES } from '../../lib/supabase';
 const AdminDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, profile, loading } = useAuth();
+  
+  console.log('🏠 AdminDashboard: Rendering with state:', {
+    hasUser: !!user,
+    userEmail: user?.email,
+    hasProfile: !!profile,
+    profileRole: profile?.role,
+    loading
+  });
 
   // Show loading while checking authentication
   if (loading) {
+    console.log('⏳ AdminDashboard: Still loading, showing loading screen');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
@@ -28,11 +37,13 @@ const AdminDashboard: React.FC = () => {
 
   // Redirect to login if not authenticated
   if (!user || !profile) {
+    console.log('🚫 AdminDashboard: No user or profile, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Check if user has minimum required role
   if (!hasPermission(profile.role, ROLES.CONTRIBUTOR)) {
+    console.log('🚫 AdminDashboard: Insufficient permissions, role:', profile.role);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
@@ -48,6 +59,7 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
+  console.log('✅ AdminDashboard: User authenticated and authorized, rendering dashboard');
   return (
     <div className="min-h-screen bg-gray-100">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />

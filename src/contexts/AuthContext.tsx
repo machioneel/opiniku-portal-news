@@ -36,20 +36,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
+      console.log('🔍 AuthContext: Getting initial session...');
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('❌ AuthContext: Error getting initial session:', error);
         } else {
+          console.log('✅ AuthContext: Initial session retrieved:', session ? 'Session exists' : 'No session');
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {
+            console.log('👤 AuthContext: User found, fetching profile for:', session.user.email);
             await fetchProfile(session.user.id);
+          } else {
+            console.log('👤 AuthContext: No user in session');
           }
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('❌ AuthContext: Catch error in getInitialSession:', error);
       } finally {
+        console.log('🏁 AuthContext: Initial session check completed, setting loading to false');
         setLoading(false);
       }
     };
@@ -60,17 +66,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      console.log('🔄 AuthContext: Auth state changed:', event, session?.user?.email || 'No user');
       
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('👤 AuthContext: Auth change - User found, fetching profile for:', session.user.email);
         await fetchProfile(session.user.id);
       } else {
+        console.log('👤 AuthContext: Auth change - No user, clearing profile');
         setProfile(null);
       }
       
+      console.log('🏁 AuthContext: Auth state change completed, setting loading to false');
       setLoading(false);
     });
 
@@ -78,15 +87,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    console.log('📋 AuthContext: Fetching profile for user ID:', userId);
     try {
       const { data, error } = await DatabaseService.getProfile(userId);
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ AuthContext: Error fetching profile:', error);
       } else if (data) {
+        console.log('✅ AuthContext: Profile fetched successfully:', {
+          name: data.full_name,
+          role: data.role,
+          active: data.is_active
+        });
         setProfile(data);
+      } else {
+        console.warn('⚠️ AuthContext: No profile data returned');
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('❌ AuthContext: Catch error in fetchProfile:', error);
     }
   };
 
@@ -108,18 +125,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('🔐 AuthContext: Starting sign in for:', email);
     try {
       setLoading(true);
+      console.log('⏳ AuthContext: Loading set to true, calling DatabaseService.signIn');
       const { data, error } = await DatabaseService.signIn(email, password);
       
       if (error) {
+        console.error('❌ AuthContext: Sign in failed:', error.message);
         return { success: false, error: error.message };
       }
       
+      console.log('✅ AuthContext: Sign in successful');
       return { success: true };
     } catch (error: any) {
+      console.error('❌ AuthContext: Catch error in signIn:', error);
       return { success: false, error: error.message || 'An error occurred during signin' };
     } finally {
+      console.log('🏁 AuthContext: Sign in process completed, setting loading to false');
       setLoading(false);
     }
   };
