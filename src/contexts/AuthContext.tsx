@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data, error } = await DatabaseService.getProfile(userId);
       if (error) {
         console.error('❌ AuthContext: Error fetching profile:', error);
+        setProfile(null); // Explicitly set profile to null on error
       } else if (data) {
         console.log('✅ AuthContext: Profile fetched successfully:', {
           name: data.full_name,
@@ -101,9 +102,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setProfile(data);
       } else {
         console.warn('⚠️ AuthContext: No profile data returned');
+        setProfile(null); // Explicitly set profile to null if no data
       }
     } catch (error) {
       console.error('❌ AuthContext: Catch error in fetchProfile:', error);
+      setProfile(null); // Explicitly set profile to null on catch error
     }
   };
 

@@ -42,7 +42,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   // Check if user has minimum required role
-  if (!hasPermission(profile.role, ROLES.CONTRIBUTOR)) {
+  if (!profile.role || !hasPermission(profile.role, ROLES.CONTRIBUTOR)) { // Added !profile.role check
     console.log('🚫 AdminDashboard: Insufficient permissions, role:', profile.role);
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -52,7 +52,7 @@ const AdminDashboard: React.FC = () => {
             Anda tidak memiliki izin untuk mengakses admin panel.
           </p>
           <p className="text-sm text-gray-500">
-            Role Anda: <span className="font-medium capitalize">{profile.role.replace('_', ' ')}</span>
+            Role Anda: <span className="font-medium capitalize">{profile.role?.replace('_', ' ') || 'Tidak Ditemukan'}</span>
           </p>
         </div>
       </div>
